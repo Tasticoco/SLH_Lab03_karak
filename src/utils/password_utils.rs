@@ -41,7 +41,12 @@ impl<'de> Deserialize<'de> for PWHash {
 
 /// Calcule un haché a partir d'un mot de passe en clair, en choisissant un sel au hasard
 pub fn hash(password: &str) -> PWHash {
-    todo!()
+    let salt = SaltString::generate(&mut OsRng);
+    let hash = DEFAULT_HASHER
+        .hash_password(password.as_bytes(), &salt)
+        .unwrap()
+        .serialize();
+    PWHash(hash)
 }
 
 /// Vérifie si le mot de passe correspond au hash stocké.
@@ -50,5 +55,7 @@ pub fn hash(password: &str) -> PWHash {
 /// le mot de passe avec un faux hash pour éviter une timing
 /// attack.
 pub fn verify(password: &str, maybe_hash: Option<&PWHash>) -> bool {
-    todo!()
+    let hash = maybe_hash.unwrap_or(&*EMPTY_HASH);
+
+    DEFAULT_HASHER.verify_password(password.as_bytes(), &hash.0.password_hash()).is_ok()
 }

@@ -1,12 +1,14 @@
 use derive_more::derive::Display;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-
+use zxcvbn::{zxcvbn, Score};
 
 /// This function checks if the given password is valid
 /// Returns true if the password is strong enough, false otherwise
 fn password_validation(password: &str, username: &str) -> bool {
-    todo!()
+    // ?? a regarder ce qu'il fait
+
+    zxcvbn::zxcvbn(password, &[username]).score() >= Score::Three
 }
 
 /// Interactively prompts the user for a password
