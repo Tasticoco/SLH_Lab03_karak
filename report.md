@@ -26,8 +26,12 @@ Pour ces types-là, la dérivation automatique est peu adaptée, car il n'y pas 
 
 > Que pensez-vous de l’impact de l’utilisation de Casbin sur la performance de l’application ? sur l’efficacité du système de types ?
 
+### Performances
+Malgré les optimisations mise en place par Casbin (qui le rend plus rapide qu'une implémentation "à la main"), la vérification au runtime des autorisations surcharge le traitement des demandes et peut dans un système plus conséquent poser des problèmes.
 
+### Système de types
+Avec Casbin, on perd, entre autre système à la compilation de Rust, la sûreté statique ce qui rend la détéction de problèmes plus compliquée.
 
 > Avez-vous d’autres remarques ?
 
-Je ne sais pas, mais non pour moins écrire.
+Je ne sais pas, mais plutôt non pour moins écrire.
