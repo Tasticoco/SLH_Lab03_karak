@@ -1,5 +1,7 @@
 //! API d'accès au dossier, et point d'entrée unique pour le contrôle d'accès.
 //!
+
+use inquire::set_global_render_config;
 use crate::authorization::{AccessDenied, Context, Enforcer};
 use crate::db::{DBError, Database};
 use crate::models::{MedicalFolder, MedicalReport, PersonalData, ReportID, Role, UserData, UserID};
@@ -116,14 +118,19 @@ impl Service {
 
     /// Change le role d'un utilisateur
     pub fn update_role(&mut self, user_id: UserID, new_role: Role) -> Result<(), ServiceError> {
-        // TODO
+        let try_user = self.db.get_user(user_id)?;
+        self.enforce()?.update_role(try_user, new_role)?;
+
+        let user = self.db.get_user_mut(user_id)?;
+        user.role = new_role;
         Ok(())
     }
 
     /// Récupère les données d'un utilisateur
     pub fn get_data(&self, user_id: UserID) -> Result<&UserData, ServiceError> {
-        // TODO
-        Ok(todo!())
+        let try_user = self.db.get_user(user_id)?;
+        self.enforce()?.read_data(try_user)?;
+        Ok(try_user)
     }
 
     /// Change les données personnelles d'un utilisateur. Si le dossier médical
@@ -133,7 +140,9 @@ impl Service {
         user_id: UserID,
         personal_data: PersonalData,
     ) -> Result<(), ServiceError> {
-        // TODO
+        let try_user = self.db.get_user(user_id)?;
+        self.enforce()?.update_data(try_user)?;
+
         let folder = &mut self.db.get_user_mut(user_id)?.medical_folder;
 
         if let Some(folder) = folder {
@@ -148,7 +157,9 @@ impl Service {
     /// (S'il est également médecin, son rôle de médecin n'est pas
     /// affecté)
     pub fn delete_data(&mut self, patient: UserID) -> Result<(), ServiceError> {
-        // TODO
+        let try_patient = self.db.get_user(patient)?;
+        self.enforce()?.delete_data(try_patient)?;
+
         self.db.get_user_mut(patient)?.medical_folder = None;
         self.db.remove_reports(patient);
         Ok(())
@@ -169,8 +180,8 @@ impl Service {
             patient,
             content,
         };
-
-        // TODO
+        let try_patient = self.db.get_user(patient)?;
+        self.enforce()?.add_report(try_patient, &report)?;
 
         self.db.store_report(report);
         Ok(())
@@ -180,7 +191,7 @@ impl Service {
         self.enforce().ok().into_iter().flat_map(move |ctx| {
             self.db
                 .list_reports()
-                // TODO use .filter() here for access control
+                .filter(move |r| { r.patient == user_id })
         })
     }
 
@@ -196,7 +207,10 @@ impl Service {
         patient_id: UserID,
         doctor_id: UserID,
     ) -> Result<(), ServiceError> {
-        // TODO
+        let try_patient = self.db.get_user(patient_id)?;
+        let try_doctor = self.db.get_user(doctor_id)?;
+        self.enforce()?.add_doctor(try_patient, try_doctor)?;
+
         let patient = self.db.get_user_mut(patient_id)?;
         patient
             .medical_folder
@@ -210,7 +224,10 @@ impl Service {
         patient_id: UserID,
         doctor_id: UserID,
     ) -> Result<(), ServiceError> {
-        // TODO
+        let try_patient = self.db.get_user(patient_id)?;
+        let try_doctor = self.db.get_user(doctor_id)?;
+        self.enforce()?.remove_doctor(try_patient, try_doctor)?;
+
         let patient = self.db.get_user_mut(patient_id)?;
         patient
             .medical_folder

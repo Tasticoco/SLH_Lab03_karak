@@ -81,7 +81,7 @@ impl AsRef<str> for Username {
 
 fn username_validation(username: &str) -> Result<(), InvalidInput> {
     //On utilise un regex trouvé sur regexlib :0
-    let regex_usern = Regex::new(r"^\w[a-zA-Z0-9_.-]{2,28}\w$").unwrap();
+    let regex_usern = Regex::new(r"^\w[a-zA-Z0-9_-]{2,28}\w$").unwrap();
     if !regex_usern.is_match(username) {
         Err(InvalidInput)
     }else {
@@ -92,7 +92,7 @@ fn username_validation(username: &str) -> Result<(), InvalidInput> {
 pub fn username_input_validation(message: &str) -> Result<Username, InvalidInput> {
     let username = inquire::Text::new(message)
         .with_help_message(
-            "Username must be at least 3 and at most 30 characters long and contain only alphanumeric characters, \"_\", \"-\", or \".\""
+            "Username must be at least 3 and at most 30 characters long and contain only alphanumeric characters, \"_\" or \"-\""
         )
         .prompt()
         .expect("Unexpected failure in username input");
