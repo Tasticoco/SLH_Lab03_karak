@@ -44,7 +44,7 @@ pub fn hash(password: &str) -> PWHash {
     let salt = SaltString::generate(&mut OsRng);
     let hash = DEFAULT_HASHER
         .hash_password(password.as_bytes(), &salt)
-        .unwrap()
+        .expect("Password hashing failed unexpectedly")
         .serialize();
     PWHash(hash)
 }
@@ -58,4 +58,66 @@ pub fn verify(password: &str, maybe_hash: Option<&PWHash>) -> bool {
     let hash = maybe_hash.unwrap_or(&*EMPTY_HASH);
 
     DEFAULT_HASHER.verify_password(password.as_bytes(), &hash.0.password_hash()).is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hash_and_verify() {
+        let password = "StrongP@ssw0rd";
+
+        // Hashage du mot de passe
+        let hashed = hash(password);
+
+        // Vérification du mot de passe valide
+        assert!(verify(password, Some(&hashed)));
+
+        // Vérification avec un mot de passe incorrect
+        assert!(!verify("WrongPassword", Some(&hashed)));
+    }
+
+    #[test]
+    fn test_verify_empty_password() {
+        // Test avec un mot de passe vide
+        let hashed_empty = hash("");
+
+        assert!(verify("", Some(&hashed_empty)));
+        assert!(!verify("NotEmpty", Some(&hashed_empty)));
+    }
+
+    #[test]
+    fn test_verify_with_empty_hash() {
+        let password = "SomePassword";
+
+        // Test avec un hash vide (attaque par canal auxiliaire simulée)
+        assert!(!verify(password, None));
+
+        // Toujours faux avec un mot de passe différent
+        assert!(!verify("DifferentPassword", None));
+    }
+
+    #[test]
+    fn test_hash_uniqueness() {
+        let password = "UniquePassword";
+
+        // Deux hachés du même mot de passe ne doivent pas être identiques (sel aléatoire)
+        let hash1 = hash(password);
+        let hash2 = hash(password);
+        assert_ne!(hash1.to_string(), hash2.to_string());
+    }
+
+    #[test]
+    fn test_hash_serialization() {
+        let password = "SerializablePassword";
+
+        // Sérialisation et désérialisation du haché
+        let hashed = hash(password);
+        let serialized = serde_json::to_string(&hashed).expect("Serialization failed");
+        let deserialized: PWHash = serde_json::from_str(&serialized).expect("Deserialization failed");
+
+        // Vérification que la désérialisation produit le même haché
+        assert_eq!(hashed.to_string(), deserialized.to_string());
+    }
 }
